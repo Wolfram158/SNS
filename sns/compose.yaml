@@ -1,0 +1,45 @@
+services:
+  postgres-subscribers:
+    image: postgres:17-alpine
+    container_name: subscribers-db
+    environment:
+      POSTGRES_DB: subscribers_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    expose:
+      - "5432"
+    networks:
+      - subscribers
+    volumes:
+      - pgdata_subscribers:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+  subscribers-service:
+    build:
+      context: .
+      dockerfile: subscribers/Dockerfile
+    container_name: subscribers-service-container
+    ports:
+      - '8081:8081'
+    depends_on:
+      - postgres-subscribers
+    networks:
+      - all
+      - subscribers
+    environment:
+      POSTGRES_USER: subscribers_db
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: postgres
+
+volumes:
+  pgdata_subscribers:
+
+networks:
+  all:
+    driver: bridge
+  subscribers:
+    driver: bridge
+    internal: true

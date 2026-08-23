@@ -1,0 +1,47 @@
+[versions]
+kotlin = "1.9.25"
+ksp = "1.9.25-1.0.20"
+kora = "1.2.18"
+r2dbc-postgresql = "1.1.2.RELEASE"
+flyway = "9.22.3"
+postgresql-jdbc = "42.7.13"
+reactor = "3.8.6"
+coroutines = "1.8.1"
+jvm-target = "21"
+
+[libraries]
+kora-parent = { module = "ru.tinkoff.kora:kora-parent", version.ref = "kora" }
+kora-http-server-undertow = { module = "ru.tinkoff.kora:http-server-undertow", version.ref = "kora" }
+kora-database-flyway    = { module = "ru.tinkoff.kora:database-flyway", version.ref = "kora" }
+kora-database-r2dbc = { module = "ru.tinkoff.kora:database-r2dbc", version.ref = "kora" }
+kora-json-module = { module = "ru.tinkoff.kora:json-module", version.ref = "kora" }
+kora-config-hocon = { module = "ru.tinkoff.kora:config-hocon", version.ref = "kora" }
+kora-logging-logback = { module = "ru.tinkoff.kora:logging-logback", version.ref = "kora" }
+kora-database-jdbc = { module = "ru.tinkoff.kora:database-jdbc", version.ref = "kora" }
+
+kora-symbol-processors = { module = "ru.tinkoff.kora:symbol-processors", version.ref = "kora" }
+
+r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql", version.ref = "r2dbc-postgresql" }
+postgresql-jdbc = { module = "org.postgresql:postgresql", version.ref = "postgresql-jdbc" }
+
+flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+
+reactor-core = { module = "io.projectreactor:reactor-core", version.ref = "reactor" }
+
+coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor", version.ref = "coroutines" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp",   version.ref = "ksp" }
+
+[bundles]
+kora-core = [
+    "kora-database-flyway",
+    "kora-database-r2dbc",
+    "kora-database-jdbc",
+    "kora-http-server-undertow",
+    "kora-json-module",
+    "kora-config-hocon",
+    "kora-logging-logback",
+]
