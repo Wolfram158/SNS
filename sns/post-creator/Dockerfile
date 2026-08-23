@@ -4,7 +4,7 @@ workdir /app
 
 copy . .
 
-run ./gradlew :subscribers:build -x test
+run ./gradlew :post-creator:build -x test
 
 from alpine:3.22.2
 
@@ -15,8 +15,8 @@ user appuser
 
 workdir /app
 
-copy --from=builder /app/subscribers/build/libs/*.jar app.jar
+copy --from=builder /app/post-creator/build/libs/*.jar app.jar
 
-expose 8081
+expose 8082
 
 entrypoint ["java", "-jar", "app.jar"]

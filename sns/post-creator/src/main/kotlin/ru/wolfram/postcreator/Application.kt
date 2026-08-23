@@ -1,4 +1,4 @@
-package ru.wolfram.subscribers
+package ru.wolfram.postcreator
 
 import ru.tinkoff.kora.application.graph.KoraApplication
 import ru.tinkoff.kora.common.KoraApp

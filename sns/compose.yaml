@@ -2,10 +2,6 @@ services:
   postgres-subscribers:
     image: postgres:17-alpine
     container_name: subscribers-db
-    environment:
-      POSTGRES_DB: subscribers_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
     expose:
       - "5432"
     networks:
@@ -17,6 +13,11 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+    environment:
+      POSTGRES_DB: subscribers_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
   subscribers-service:
     build:
       context: .
@@ -25,21 +26,104 @@ services:
     ports:
       - '8081:8081'
     depends_on:
-      - postgres-subscribers
+      postgres-subscribers:
+        condition: service_healthy
     networks:
       - all
       - subscribers
     environment:
-      POSTGRES_USER: subscribers_db
-      POSTGRES_DB: postgres
+      POSTGRES_DB: subscribers_db
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - posts
+      - all
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - posts
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      mc mb myminio/posts-bucket --ignore-existing;
+      exit 0;
+      "
+
+  postgres-posts:
+    image: postgres:17-alpine
+    container_name: posts-db
+    networks:
+      - posts
+    volumes:
+      - pgdata_posts:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      retries: 5
+    environment:
+      POSTGRES_DB: posts_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  post-creator-service:
+    build:
+      context: .
+      dockerfile: post-creator/Dockerfile
+    container_name: post-creator-container
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres-posts:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    networks:
+      - all
+      - posts
+    environment:
+      POSTGRES_DB: posts_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      S3_ENDPOINT: "http://minio:9000"
+      S3_REGION: "us-east-1"
+      S3_BUCKET: "posts-bucket"
+      S3_ACCESS_KEY: "minioadmin"
+      S3_SECRET_KEY: "minioadmin"
 
 volumes:
   pgdata_subscribers:
+  minio_data:
+  pgdata_posts:
 
 networks:
   all:
     driver: bridge
   subscribers:
+    driver: bridge
+    internal: true
+  posts:
     driver: bridge
     internal: true
