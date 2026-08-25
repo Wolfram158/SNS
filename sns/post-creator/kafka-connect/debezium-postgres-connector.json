@@ -1,0 +1,46 @@
+{
+  "name": "posts-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+
+    "database.hostname": "postgres-posts",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "postgres",
+    "database.dbname": "posts_db",
+
+    "topic.prefix": "posts",
+    "table.include.list": "public.outbox_events",
+
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_posts_slot",
+    "slot.drop.on.stop": "false",
+    "publication.name": "dbz_posts_publication",
+    "publication.autocreate.mode": "filtered",
+
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.field.event.id": "id",
+    "transforms.outbox.table.field.event.key": "aggregate_id",
+    "transforms.outbox.table.field.event.type": "event_type",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.expand.json.payload": "true",
+    "transforms.outbox.table.field.event.payload.id": "id",
+    "transforms.outbox.table.fields.additional.placement": "aggregate_type:envelope:aggregateType,created_at:envelope:timestamp",
+    "transforms.outbox.route.by.field": "event_type",
+    "transforms.outbox.route.topic.replacement": "sns.${routedByValue}",
+
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false",
+
+    "tombstones.on.delete": "false",
+    "snapshot.mode": "never",
+
+    "topic.creation.default.replication.factor": 1,
+    "topic.creation.default.partitions": 3,
+    "topic.creation.default.cleanup.policy": "delete",
+    "topic.creation.default.retention.ms": 604800000
+  }
+}

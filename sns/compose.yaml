@@ -75,6 +75,14 @@ services:
   postgres-posts:
     image: postgres:17-alpine
     container_name: posts-db
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=4"
+      - "-c"
+      - "max_wal_senders=4"
     networks:
       - posts
     volumes:
@@ -103,6 +111,13 @@ services:
     networks:
       - all
       - posts
+      - kafka
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -sf http://localhost:8085/system/readiness || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     environment:
       POSTGRES_DB: posts_db
       POSTGRES_USER: postgres
@@ -113,10 +128,89 @@ services:
       S3_ACCESS_KEY: "minioadmin"
       S3_SECRET_KEY: "minioadmin"
 
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+
+      KAFKA_LISTENERS: 'CONTROLLER://0.0.0.0:29093,PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+
+      KAFKA_LOG_DIRS: '/var/lib/kafka/data'
+      KAFKA_CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - kafka
+    healthcheck:
+      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 | grep 'ApiVersion'" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  kafka-connect:
+    image: debezium/connect:3.0.0.Final
+    container_name: kafka-connect
+    depends_on:
+      kafka:
+        condition: service_healthy
+      post-creator-service:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: "1"
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KAFKA_HEAP_OPTS: "-Xms512M -Xmx512M"
+    networks:
+      - kafka
+      - posts
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  debezium-init:
+    build:
+      context: ./post-creator/kafka-connect
+      dockerfile: Dockerfile
+    container_name: debezium-init
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    networks:
+      - kafka
+
 volumes:
   pgdata_subscribers:
   minio_data:
   pgdata_posts:
+  kafka_data:
 
 networks:
   all:
@@ -125,5 +219,8 @@ networks:
     driver: bridge
     internal: true
   posts:
+    driver: bridge
+    internal: true
+  kafka:
     driver: bridge
     internal: true

@@ -8,7 +8,7 @@ run ./gradlew :post-creator:build -x test
 
 from alpine:3.22.2
 
-run apk add --no-cache openjdk21-jre
+run apk add --no-cache openjdk21-jre curl
 
 run addgroup -S appgroup && adduser -S appuser -G appgroup
 user appuser
