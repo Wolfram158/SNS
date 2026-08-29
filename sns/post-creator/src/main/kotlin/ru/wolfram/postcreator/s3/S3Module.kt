@@ -7,6 +7,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
+import software.amazon.awssdk.services.s3.S3Configuration
 import java.net.URI
 
 @ConfigSource("s3")
@@ -29,7 +30,11 @@ class S3ClientHolder(config: S3Config) {
                 AwsBasicCredentials.create(config.accessKey(), config.secretKey())
             )
         )
-        .forcePathStyle(true)
+        .serviceConfiguration(
+            S3Configuration.builder()
+                .pathStyleAccessEnabled(true)
+                .build()
+        )
         .build()
 
     val bucket: String = config.bucket()

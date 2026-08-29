@@ -28,4 +28,20 @@ class SubscriptionController(
     ) {
         service.unsubscribe(followerId, followingId)
     }
+
+    @HttpRoute(method = HttpMethod.GET, path = "/v1/following")
+    @Json
+    suspend fun getFollowing(
+        @Query("user_id") userId: Long
+    ): List<Long> {
+        return service.getFollowing(userId)
+    }
+
+    @HttpRoute(method = HttpMethod.GET, path = "/v1/followers")
+    @Json
+    suspend fun getFollowers(
+        @Query("author_id") authorId: Long
+    ): List<Long> {
+        return service.getFollowers(authorId)
+    }
 }

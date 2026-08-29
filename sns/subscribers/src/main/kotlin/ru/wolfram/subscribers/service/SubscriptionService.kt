@@ -35,4 +35,12 @@ class SubscriptionService(
             throw HttpServerResponseException.of(404, "Subscription not found")
         }
     }
+
+    suspend fun getFollowing(userId: Long): List<Long> {
+        return repository.findFollowingByFollower(userId)
+    }
+
+    suspend fun getFollowers(authorId: Long): List<Long> {
+        return repository.findFollowersByFollowing(authorId)
+    }
 }

@@ -206,11 +206,54 @@ services:
     networks:
       - kafka
 
+  postgres-feed:
+    image: postgres:17-alpine
+    container_name: feed-db
+    expose:
+      - "5432"
+    networks:
+      - feed
+    volumes:
+      - pgdata_feed:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    environment:
+      POSTGRES_DB: feed_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  feed-service:
+    build:
+      context: .
+      dockerfile: feed/Dockerfile
+    container_name: feed-container
+    ports:
+      - "8086:8086"
+      - "8087:8087"
+    depends_on:
+      postgres-feed:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      subscribers-service:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+    networks:
+      - all
+      - feed
+      - kafka
+      - subscribers
+
 volumes:
   pgdata_subscribers:
   minio_data:
   pgdata_posts:
   kafka_data:
+  pgdata_feed:
 
 networks:
   all:
@@ -222,5 +265,8 @@ networks:
     driver: bridge
     internal: true
   kafka:
+    driver: bridge
+    internal: true
+  feed:
     driver: bridge
     internal: true

@@ -26,7 +26,7 @@ class PostService(
 ) {
     companion object {
         const val MAX_IMAGES = 10
-        const val MAX_TEXT_LENGTH = 5000
+        const val MAX_TEXT_LENGTH = 3000
         const val MAX_IMAGE_SIZE = 10 * 1024 * 1024
     }
 

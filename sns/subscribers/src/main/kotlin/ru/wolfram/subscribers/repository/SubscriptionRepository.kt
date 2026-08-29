@@ -19,19 +19,6 @@ interface SubscriptionRepository : R2dbcRepository {
 
     @Query(
         """
-        SELECT follower_id, following_id
-        FROM subscriptions
-        WHERE follower_id = :followerId
-          AND following_id = :followingId
-    """
-    )
-    suspend fun findByFollowerAndFollowing(
-        followerId: Long,
-        followingId: Long
-    ): SubscriptionDAO?
-
-    @Query(
-        """
         DELETE FROM subscriptions
         WHERE follower_id = :followerId
           AND following_id = :followingId
@@ -41,4 +28,20 @@ interface SubscriptionRepository : R2dbcRepository {
         followerId: Long,
         followingId: Long
     ): UpdateCount
+
+    @Query(
+        """
+        SELECT following_id FROM subscriptions
+        WHERE follower_id = :followerId
+        """
+    )
+    suspend fun findFollowingByFollower(followerId: Long): List<Long>
+
+    @Query(
+        """
+        SELECT follower_id FROM subscriptions
+        WHERE following_id = :followingId
+        """
+    )
+    suspend fun findFollowersByFollowing(followingId: Long): List<Long>
 }

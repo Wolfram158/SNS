@@ -1,22 +1,34 @@
-from gradle:8.14.0-jdk21 as builder
+FROM gradle:9.7.0-jdk21 AS builder
 
-workdir /app
+WORKDIR /app
 
-copy . .
+COPY buildSrc/build.gradle.kts ./buildSrc/
+COPY buildSrc/src ./buildSrc/src
+COPY build.gradle.kts settings.gradle.kts gradle.properties ./
+COPY gradle ./gradle
 
-run ./gradlew :post-creator:build -x test
+COPY post-creator/build.gradle.kts ./post-creator/
+COPY subscribers/build.gradle.kts ./subscribers/
+COPY feed/build.gradle.kts ./feed/
 
-from alpine:3.22.2
+RUN mkdir -p subscribers/src/main/kotlin \
+    && mkdir -p feed/src/main/kotlin
 
-run apk add --no-cache openjdk21-jre curl
+RUN --mount=type=cache,target=/root/.gradle/caches \
+    --mount=type=cache,target=/root/.gradle/wrapper \
+    gradle :post-creator:dependencies --no-daemon || true
 
-run addgroup -S appgroup && adduser -S appuser -G appgroup
-user appuser
+COPY post-creator/src ./post-creator/src
+COPY buildSrc ./buildSrc
 
-workdir /app
+RUN --mount=type=cache,target=/root/.gradle/caches \
+    --mount=type=cache,target=/root/.gradle/wrapper \
+    gradle :post-creator:assemble -x test --no-daemon
 
-copy --from=builder /app/post-creator/build/libs/*.jar app.jar
-
-expose 8082
-
-entrypoint ["java", "-jar", "app.jar"]
+FROM eclipse-temurin:21-jre-alpine
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+WORKDIR /app
+COPY --from=builder /app/post-creator/build/libs/*.jar app.jar
+USER appuser
+EXPOSE 8082 8085
+ENTRYPOINT ["java", "-jar", "app.jar"]
