@@ -33,15 +33,36 @@ dependencies {
     "implementation"(Deps.reactorCore)
 
     "implementation"(Deps.r2dbcPostgresql)
-    "implementation"(Deps.postgresqlJdbc)
+    "runtimeOnly"(Deps.postgresqlJdbc)
     "implementation"(Deps.flywayCore)
 
+    "kspTest"(Deps.Kora.symbolProcessors)
+    "testImplementation"(Deps.flywayCore)
+    "testImplementation"(Deps.Kora.databaseFlyway)
+    "testImplementation"(Deps.Kora.databaseR2dbc)
+    "testImplementation"(Deps.Kora.databaseJdbc)
+    "testRuntimeOnly"(Deps.postgresqlJdbc)
     "testImplementation"(platform(Deps.junitBom))
     "testImplementation"(Deps.junitJupiter)
     "testImplementation"(Deps.Kora.testJunit5)
+    "testImplementation"(Deps.mockk)
+    "testImplementation"("org.testcontainers:junit-jupiter:1.21.4")
+    "testImplementation"("org.testcontainers:postgresql:1.21.4")
 }
 
 kotlin {
     sourceSets["main"].kotlin.srcDir("build/generated/ksp/main/kotlin")
     sourceSets["test"].kotlin.srcDir("build/generated/ksp/test/kotlin")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        showStandardStreams = true
+        events("passed", "skipped", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+    filter {
+        excludeTestsMatching("*$*")
+    }
 }

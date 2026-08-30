@@ -6,6 +6,7 @@ object Versions {
     const val postgresqlJdbc = "42.7.13"
     const val flyway = "9.22.3"
     const val junit = "5.10.0"
+    const val mockk = "1.13.11"
 }
 
 object Deps {
@@ -33,4 +34,5 @@ object Deps {
     const val flywayCore = "org.flywaydb:flyway-core:${Versions.flyway}"
     const val junitBom = "org.junit:junit-bom:${Versions.junit}"
     const val junitJupiter = "org.junit.jupiter:junit-jupiter"
+    const val mockk = "io.mockk:mockk:${Versions.mockk}"
 }
