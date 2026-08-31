@@ -19,4 +19,10 @@ tasks.jar {
         if (it.isDirectory) it else zipTree(it)
     })
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude(
+        "META-INF/*.SF",
+        "META-INF/*.DSA",
+        "META-INF/*.RSA",
+        "META-INF/*.EC"
+    )
 }

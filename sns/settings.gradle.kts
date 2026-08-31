@@ -1,3 +1,5 @@
 include(":subscribers")
 include(":post-creator")
 include(":feed")
+include(":gateway-spring")
+include(":users")

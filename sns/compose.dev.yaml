@@ -29,7 +29,6 @@ services:
       postgres-subscribers:
         condition: service_healthy
     networks:
-      - all
       - subscribers
     volumes:
       - ./subscribers/build/libs/subscribers.jar:/app/app.jar:ro
@@ -111,7 +110,6 @@ services:
       minio-init:
         condition: service_completed_successfully
     networks:
-      - all
       - posts
       - kafka
     volumes:
@@ -241,10 +239,76 @@ services:
     volumes:
       - ./feed/build/libs/feed.jar:/app/app.jar:ro
     networks:
-      - all
       - feed
       - kafka
       - subscribers
+
+  postgres-users:
+    image: postgres:17-alpine
+    container_name: users-db
+    ports:
+      - "5432"
+    networks:
+      - users
+    volumes:
+      - pgdata_users:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  users-service:
+    build:
+      context: .
+      dockerfile: users/Dockerfile.dev
+    container_name: users-container
+    volumes:
+      - ./users/build/libs/users.jar:/app/app.jar:ro
+    ports:
+      - "8084:8084"
+      - "8089:8089"
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+    networks:
+      - users
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET}
+
+  gateway-service:
+    build:
+      context: ./gateway-spring
+      dockerfile: Dockerfile.dev
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      subscribers-service:
+        condition: service_started
+      post-creator-service:
+        condition: service_started
+      feed-service:
+        condition: service_started
+      users-service:
+        condition: service_started
+    volumes:
+      - ./gateway-spring/build/libs/gateway-spring.jar:/app/app.jar:ro
+    networks:
+      - all
+      - subscribers
+      - posts
+      - feed
+      - users
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
 
 volumes:
   pgdata_subscribers:
@@ -252,6 +316,7 @@ volumes:
   pgdata_posts:
   kafka_data:
   pgdata_feed:
+  pgdata_users:
 
 networks:
   all:
@@ -266,5 +331,8 @@ networks:
     driver: bridge
     internal: true
   feed:
+    driver: bridge
+    internal: true
+  users:
     driver: bridge
     internal: true
