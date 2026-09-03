@@ -12,15 +12,15 @@ object Versions {
 object Deps {
     object Kora {
         const val parent = "ru.tinkoff.kora:kora-parent:${Versions.kora}"
-        const val symbolProcessors = "ru.tinkoff.kora:symbol-processors:${Versions.kora}"
-        const val databaseFlyway = "ru.tinkoff.kora:database-flyway:${Versions.kora}"
-        const val databaseR2dbc = "ru.tinkoff.kora:database-r2dbc:${Versions.kora}"
-        const val databaseJdbc = "ru.tinkoff.kora:database-jdbc:${Versions.kora}"
-        const val httpServerUndertow = "ru.tinkoff.kora:http-server-undertow:${Versions.kora}"
-        const val jsonModule = "ru.tinkoff.kora:json-module:${Versions.kora}"
-        const val configHocon = "ru.tinkoff.kora:config-hocon:${Versions.kora}"
-        const val loggingLogback = "ru.tinkoff.kora:logging-logback:${Versions.kora}"
-        const val testJunit5 = "ru.tinkoff.kora:test-junit5:${Versions.kora}"
+        const val symbolProcessors = "ru.tinkoff.kora:symbol-processors"
+        const val databaseFlyway = "ru.tinkoff.kora:database-flyway"
+        const val databaseR2dbc = "ru.tinkoff.kora:database-r2dbc"
+        const val databaseJdbc = "ru.tinkoff.kora:database-jdbc"
+        const val httpServerUndertow = "ru.tinkoff.kora:http-server-undertow"
+        const val jsonModule = "ru.tinkoff.kora:json-module"
+        const val configHocon = "ru.tinkoff.kora:config-hocon"
+        const val loggingLogback = "ru.tinkoff.kora:logging-logback"
+        const val testJunit5 = "ru.tinkoff.kora:test-junit5"
     }
 
     object Coroutines {
