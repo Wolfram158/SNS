@@ -10,4 +10,6 @@ dependencies {
     implementation("ru.tinkoff.kora:kafka")
     implementation("ru.tinkoff.kora:http-client-async")
     implementation("software.amazon.awssdk:s3:2.27.0")
+
+    implementation(project(":common"))
 }

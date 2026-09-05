@@ -45,4 +45,11 @@ interface FeedRepository : R2dbcRepository {
     """
     )
     suspend fun exists(postId: UUID): Long
+
+    @Query(
+        """
+            DELETE FROM feed_items WHERE post_id = :postId
+        """
+    )
+    suspend fun deleteByPostId(postId: UUID)
 }

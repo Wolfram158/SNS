@@ -63,6 +63,15 @@ spring:
                 - Jwt
                 - AddUserId
 
+            - id: post-creator-delete-post
+              uri: http://post-creator-container:8082
+              predicates:
+                - Path=/v1/posts/{postId}
+                - Method=DELETE
+              filters:
+                - Jwt
+                - AddUserId
+
             - id: feed-get-user-feed
               uri: http://feed-container:8086
               predicates:

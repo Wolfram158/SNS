@@ -5,6 +5,7 @@ import ru.tinkoff.kora.common.Component
 import ru.tinkoff.kora.http.common.HttpMethod
 import ru.tinkoff.kora.http.common.annotation.Header
 import ru.tinkoff.kora.http.common.annotation.HttpRoute
+import ru.tinkoff.kora.http.common.annotation.Path
 import ru.tinkoff.kora.http.common.body.HttpBody
 import ru.tinkoff.kora.http.common.form.FormMultipart
 import ru.tinkoff.kora.http.common.form.FormMultipart.FormPart
@@ -13,15 +14,18 @@ import ru.tinkoff.kora.http.server.common.HttpServerResponseException
 import ru.tinkoff.kora.http.server.common.annotation.HttpController
 import ru.tinkoff.kora.json.common.JsonWriter
 import ru.wolfram.postcreator.dto.CreatePostResponse
+import ru.wolfram.postcreator.dto.DeletePostResponse
 import ru.wolfram.postcreator.service.ImageData
 import ru.wolfram.postcreator.service.PostService
 import java.nio.charset.StandardCharsets
+import java.util.*
 
 @Component
 @HttpController
 class PostController(
     private val postService: PostService,
-    private val responseJsonWriter: JsonWriter<CreatePostResponse>
+    private val createResponseJsonWriter: JsonWriter<CreatePostResponse>,
+    private val deleteResponseJsonWriter: JsonWriter<DeletePostResponse>
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -40,7 +44,20 @@ class PostController(
         val response = postService.createPost(userId, text, images)
         return HttpServerResponse.of(
             200,
-            HttpBody.json(responseJsonWriter.toString(response))
+            HttpBody.json(createResponseJsonWriter.toString(response))
+        )
+    }
+
+    @HttpRoute(method = HttpMethod.DELETE, path = "/v1/posts/{postId}")
+    suspend fun deletePost(
+        @Path("postId") postId: UUID,
+        @Header("X-User-Id") userId: Long
+    ): HttpServerResponse {
+        return HttpServerResponse.of(
+            204,
+            HttpBody.json(
+                deleteResponseJsonWriter.toString(postService.deletePost(postId, userId))
+            )
         )
     }
 

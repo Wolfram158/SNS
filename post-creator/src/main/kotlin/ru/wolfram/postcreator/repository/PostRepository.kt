@@ -25,6 +25,12 @@ interface PostRepository : R2dbcRepository {
     )
     suspend fun insertImage(image: PostImageDAO)
 
-    @Query("SELECT id, text, created_at FROM posts WHERE id = :id")
+    @Query("SELECT id, text, author_id, created_at FROM posts WHERE id = :id")
     suspend fun findById(id: UUID): PostDAO?
+
+    @Query("DELETE FROM post_images WHERE post_id = :postId")
+    suspend fun deleteImages(postId: UUID)
+
+    @Query("DELETE FROM posts WHERE id = :postId")
+    suspend fun delete(postId: UUID)
 }

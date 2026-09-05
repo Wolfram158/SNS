@@ -5,12 +5,15 @@ import kotlinx.coroutines.reactor.mono
 import ru.tinkoff.kora.common.Component
 import ru.tinkoff.kora.database.r2dbc.R2dbcConnectionFactory
 import ru.tinkoff.kora.http.server.common.HttpServerResponseException
+import ru.tinkoff.kora.json.common.JsonNullable
 import ru.tinkoff.kora.json.common.JsonWriter
+import ru.wolfram.common.PostEvent
+import ru.wolfram.common.PostEventType
 import ru.wolfram.postcreator.dao.OutboxEventDAO
 import ru.wolfram.postcreator.dao.PostDAO
 import ru.wolfram.postcreator.dao.PostImageDAO
 import ru.wolfram.postcreator.dto.CreatePostResponse
-import ru.wolfram.postcreator.dto.PostCreatedEvent
+import ru.wolfram.postcreator.dto.DeletePostResponse
 import ru.wolfram.postcreator.repository.OutboxRepository
 import ru.wolfram.postcreator.repository.PostRepository
 import java.time.OffsetDateTime
@@ -22,7 +25,8 @@ class PostService(
     private val outboxRepository: OutboxRepository,
     private val s3Storage: S3StorageService,
     private val connectionFactory: R2dbcConnectionFactory,
-    private val postCreatedJsonWriter: JsonWriter<PostCreatedEvent>
+    private val postCreatedJsonWriter: JsonWriter<PostEvent.PostCreatedEvent>,
+    private val deleteEventJsonWriter: JsonWriter<PostEvent.PostDeletedEvent>
 ) {
     companion object {
         const val MAX_IMAGES = 10
@@ -52,6 +56,43 @@ class PostService(
             createdAt = createdAt,
             imageKeys = s3Keys.map { it.key }
         )
+    }
+
+    suspend fun deletePost(postId: UUID, authorId: Long): DeletePostResponse {
+        val post = postRepository.findById(postId) ?: throw HttpServerResponseException.of(404, "Post not found")
+        if (post.authorId != authorId) {
+            throw HttpServerResponseException.of(403, "Forbidden: You can only delete your own posts")
+        }
+
+        deletePostInTransaction(postId, authorId)
+
+        return DeletePostResponse(postId, authorId)
+    }
+
+    private suspend fun deletePostInTransaction(postId: UUID, authorId: Long) {
+        connectionFactory.inTx {
+            mono {
+                postRepository.deleteImages(postId)
+
+                postRepository.delete(postId)
+
+                val event = PostEvent.PostDeletedEvent(
+                    postId = postId,
+                    authorId = authorId
+                )
+
+                outboxRepository.insert(
+                    OutboxEventDAO(
+                        id = UUID.randomUUID(),
+                        aggregateType = "Post",
+                        aggregateId = postId,
+                        eventType = PostEventType.POST_DELETED,
+                        payload = deleteEventJsonWriter.toString(event),
+                        createdAt = OffsetDateTime.now()
+                    )
+                )
+            }
+        }.awaitSingleOrNull()
     }
 
     private suspend fun uploadImagesToS3(images: List<ImageData>): List<S3KeyInfo> {
@@ -100,12 +141,12 @@ class PostService(
                     )
                 }
 
-                val event = PostCreatedEvent(
+                val event = PostEvent.PostCreatedEvent(
                     postId = postId,
                     authorId = authorId,
                     text = text,
                     createdAt = createdAt,
-                    imageKeys = s3Keys.map { it.key }
+                    imageKeys = JsonNullable.of(s3Keys.map { it.key })
                 )
 
                 outboxRepository.insert(
@@ -113,7 +154,7 @@ class PostService(
                         id = UUID.randomUUID(),
                         aggregateType = "Post",
                         aggregateId = postId,
-                        eventType = "PostCreated",
+                        eventType = PostEventType.POST_CREATED,
                         payload = postCreatedJsonWriter.toString(event),
                         createdAt = createdAt
                     )

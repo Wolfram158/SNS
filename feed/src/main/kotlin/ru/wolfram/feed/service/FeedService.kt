@@ -5,10 +5,10 @@ import ru.tinkoff.kora.common.Component
 import ru.tinkoff.kora.http.client.common.HttpClientException
 import ru.tinkoff.kora.json.common.JsonReader
 import ru.tinkoff.kora.json.common.JsonWriter
+import ru.wolfram.common.PostEvent
 import ru.wolfram.feed.client.SubscribersClient
 import ru.wolfram.feed.dao.FeedItemDAO
 import ru.wolfram.feed.dto.FeedItemResponse
-import ru.wolfram.feed.dto.PostCreatedMessage
 import ru.wolfram.feed.repository.FeedRepository
 import ru.wolfram.feed.s3.S3Service
 
@@ -22,7 +22,7 @@ class FeedService(
 ) {
     private val logger = LoggerFactory.getLogger(FeedService::class.java)
 
-    suspend fun handlePostCreated(message: PostCreatedMessage) {
+    suspend fun handlePostCreated(message: PostEvent.PostCreatedEvent) {
         validatePostCreated(message)
 
         if (feedRepository.exists(message.postId) > 0) {
@@ -30,7 +30,11 @@ class FeedService(
             return
         }
 
-        val imageKeysJson = imageKeysWriter.toString(message.imageKeys)
+        val imageKeysJson = if (message.imageKeys.isDefined && !message.imageKeys.isNull) {
+            imageKeysWriter.toString(message.imageKeys.value())
+        } else {
+            imageKeysWriter.toString(emptyList())
+        }
 
         feedRepository.save(
             postId = message.postId,
@@ -46,7 +50,16 @@ class FeedService(
         )
     }
 
-    private fun validatePostCreated(message: PostCreatedMessage) {
+    suspend fun handlePostDeleted(message: PostEvent.PostDeletedEvent) {
+        feedRepository.deleteByPostId(message.postId)
+
+        logger.info(
+            "Post deleted: postId={}, authorId={}",
+            message.postId, message.authorId
+        )
+    }
+
+    private fun validatePostCreated(message: PostEvent.PostCreatedEvent) {
         require(message.text.isNotBlank()) {
             "Post text cannot be blank (postId=${message.postId})"
         }
